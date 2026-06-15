@@ -1,0 +1,15 @@
+server:
+  token: ""
+  port: 8000
+
+defaults:
+  timeout_seconds: 30
+  max_rows: 10000
+
+instances:
+  - instance_id: "local"
+    dsn: "root:password@tcp(127.0.0.1:3306)/mydb?charset=utf8mb4&parseTime=true"
+    environment: "development"
+    read_only: false
+    timeout_seconds: 30
+    max_rows: 1000

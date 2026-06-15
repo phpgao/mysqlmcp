@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="mysqlmcp — MySQL MCP server. Multi-instance, read-only enforcement, SQL analysis.">
+  <title>mysqlmcp — MySQL MCP Server</title>
+  <style>
+    :root {
+      --bg:          #0F172A;
+      --bg-elevated: #1E293B;
+      --bg-card:     #19223D;
+      --bg-code:     #0A0E17;
+      --primary:     #22C55E;
+      --primary-dim: #16A34A;
+      --primary-soft: rgba(34,197,94,0.12);
+      --accent-blue: #38BDF8;
+      --accent-purple: #A78BFA;
+      --text:        #F8FAFC;
+      --text-muted:  #94A3B8;
+      --border:      #334155;
+      --border-dim:  #1E293B;
+      --ring:        #22C55E;
+      --radius:   10px;
+      --radius-sm: 6px;
+      --transition: 180ms ease-out;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--primary); text-decoration: none; transition: color var(--transition); }
+    a:hover { color: var(--primary-dim); }
+    :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    code, pre { font-family: monospace; }
+
+    .section { padding: 5rem 1.5rem; max-width: 960px; margin: 0 auto; }
+    @media (max-width: 640px) { .section { padding: 3rem 1rem; } }
+    .section-label {
+      font-family: monospace; font-size: 0.78rem; font-weight: 500;
+      color: var(--primary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem;
+    }
+    .section-title {
+      font-family: monospace; font-size: clamp(1.5rem, 4vw, 2.2rem);
+      font-weight: 700; color: var(--text); margin-bottom: 0.75rem;
+    }
+    .section-desc {
+      font-size: 1.05rem; color: var(--text-muted); max-width: 560px; margin: 0 auto 3rem;
+    }
+
+    /* Nav */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: rgba(15,23,42,0.82); border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 960px; margin: 0 auto; padding: 0 1.5rem; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-family: monospace; font-weight: 700; color: var(--primary); }
+    .nav-links { display: flex; gap: 1.2rem; align-items: center; }
+    .nav-link { font-size: 0.875rem; font-weight: 500; color: var(--text-muted); transition: color var(--transition); }
+    .nav-link:hover { color: var(--text); }
+
+    /* Hero */
+    .hero { text-align: center; padding-top: clamp(3rem, 10vh, 6rem); padding-bottom: clamp(2rem, 6vh, 4rem); }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: var(--primary-soft); border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 999px; padding: 0.35rem 1rem;
+      font-family: monospace; font-size: 0.75rem; color: var(--primary);
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge-dot { width: 7px; height: 7px; background: var(--primary); border-radius: 50%; animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+      50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+    }
+    .hero-title {
+      font-family: monospace; font-size: clamp(2rem, 6vw, 3.4rem);
+      font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 1rem;
+    }
+    .hero-title .hl { color: var(--primary); text-shadow: 0 0 32px rgba(34,197,94,0.35); }
+    .hero-desc {
+      font-size: clamp(0.95rem, 2vw, 1.15rem); color: var(--text-muted);
+      max-width: 520px; margin: 0 auto 2rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.7rem 1.5rem; border-radius: var(--radius);
+      font-size: 0.92rem; font-weight: 600;
+      text-decoration: none; cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+      border: 1px solid transparent;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: var(--primary); color: #052E16; border-color: var(--primary);
+    }
+    .btn-primary:hover {
+      background: var(--primary-dim); box-shadow: 0 0 24px rgba(34,197,94,0.3); color: #052E16;
+    }
+    .btn-secondary {
+      background: transparent; color: var(--text); border-color: var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg-elevated); border-color: var(--text-muted); color: var(--text); }
+    .btn-icon { width: 18px; height: 18px; flex-shrink: 0; }
+    .hero-cta { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    /* Config code block */
+    .config-card {
+      background: var(--bg-code); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      max-width: 600px; margin: 2.5rem auto 0;
+      box-shadow: 0 0 60px rgba(34,197,94,0.05), 0 4px 24px rgba(0,0,0,0.4);
+    }
+    .config-bar {
+      background: var(--bg-elevated); padding: 0.5rem 1rem;
+      display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border-dim);
+    }
+    .config-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .config-dot:nth-child(1) { background: #EF4444; }
+    .config-dot:nth-child(2) { background: #EAB308; }
+    .config-dot:nth-child(3) { background: var(--primary); }
+    .config-title {
+      flex: 1; font-family: monospace; font-size: 0.7rem;
+      color: var(--text-muted); text-align: center; user-select: none;
+    }
+    .config-body {
+      padding: 1.25rem; font-family: monospace; font-size: 0.8rem;
+      line-height: 1.65; overflow-x: auto; text-align: left;
+    }
+    .config-body .c-key { color: var(--accent-purple); }
+    .config-body .c-str { color: #FBBF24; }
+    .config-body .c-comment { color: #64748B; font-style: italic; }
+    .config-body .c-num { color: #FB923C; }
+    .config-body .c-bool { color: var(--accent-blue); }
+
+    /* Features */
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    @media (max-width: 768px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .feature-grid { grid-template-columns: 1fr; } }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border-dim);
+      border-radius: var(--radius); padding: 1.5rem;
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .feature-card:hover {
+      border-color: rgba(34,197,94,0.2); transform: translateY(-1px);
+    }
+    .feature-icon { width: 32px; height: 32px; margin-bottom: 0.75rem; color: var(--primary); }
+    .feature-name {
+      font-family: monospace; font-size: 0.88rem; font-weight: 600;
+      color: var(--text); margin-bottom: 0.3rem;
+    }
+    .feature-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.45; }
+
+    /* Tools Table */
+    .tools-group { margin-bottom: 2rem; }
+    .tools-group-title {
+      font-family: monospace; font-size: 0.85rem; font-weight: 600;
+      color: var(--primary); margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-dim);
+    }
+    .tools-list {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+    }
+    @media (max-width: 600px) { .tools-list { grid-template-columns: 1fr; } }
+    .tool-item {
+      padding: 0.5rem 0.75rem; border-radius: var(--radius-sm);
+      background: var(--bg-card); border: 1px solid var(--border-dim);
+      font-size: 0.85rem; transition: border-color var(--transition);
+    }
+    .tool-item:hover { border-color: rgba(34,197,94,0.15); }
+    .tool-item code {
+      font-family: monospace; color: var(--primary); font-size: 0.8rem;
+      font-weight: 500; background: none; display: block; margin-bottom: 0.15rem;
+    }
+    .tool-item span { color: var(--text-muted); font-size: 0.78rem; }
+
+    /* Security Layers */
+    .security-flow {
+      display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;
+    }
+    .security-step {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1rem; text-align: center;
+      min-width: 140px; flex: 1; max-width: 200px;
+    }
+    .security-step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--primary-soft); border: 1px solid rgba(34,197,94,0.3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: monospace; font-size: 0.85rem; font-weight: 700;
+      color: var(--primary); margin-bottom: 0.5rem;
+    }
+    .security-step h4 { font-family: monospace; font-size: 0.8rem; color: var(--text); margin-bottom: 0.25rem; }
+    .security-step p { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+
+    .security-arrow {
+      display: flex; align-items: center; color: var(--primary);
+      font-size: 1.2rem; font-weight: 700;
+    }
+    @media (max-width: 768px) {
+      .security-flow { flex-direction: column; align-items: center; }
+      .security-step { max-width: 100%; width: 100%; }
+      .security-arrow { transform: rotate(90deg); }
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border-dim); padding: 2.5rem 1.5rem;
+      max-width: 960px; margin: 0 auto;
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;
+    }
+    .footer-left { display: flex; flex-direction: column; gap: 0.25rem; }
+    .footer-brand { font-family: monospace; font-weight: 700; color: var(--primary); }
+    .footer-text { font-size: 0.85rem; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 1.5rem; align-items: center; }
+    .footer-links a { font-size: 0.85rem; color: var(--text-muted); }
+    .footer-links a:hover { color: var(--text); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Main navigation">
+  <div class="nav-inner">
+    <a href="/mysqlmcp/" class="nav-logo">mysqlmcp</a>
+    <div class="nav-links">
+      <a class="nav-link" href="#features">Features</a>
+      <a class="nav-link" href="#security">Security</a>
+      <a class="nav-link" href="#tools">Tools</a>
+      <a class="nav-link" href="#setup">Setup</a>
+      <a class="nav-link" href="https://github.com/phpgao/mysqlmcp">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+  <!-- Hero -->
+  <section class="section hero" aria-labelledby="hero-title">
+    <div class="hero-badge">
+      <span class="hero-badge-dot" aria-hidden="true"></span>
+      <span id="version">v0.1.0</span> · MCP for MySQL
+    </div>
+
+    <h1 id="hero-title" class="hero-title">
+      AI <span class="hl">queries</span> MySQL<br>with safety
+    </h1>
+
+    <p class="hero-desc">
+      Multi-instance MySQL MCP server with SQL static analysis, read-only enforcement, and built-in security layers. Connect your AI assistant to any MySQL database safely.
+    </p>
+
+    <div class="hero-cta">
+      <a href="https://github.com/phpgao/mysqlmcp" class="btn btn-primary">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
+      <code class="btn btn-secondary" style="font-family:monospace;font-size:0.85rem;cursor:text;">go install github.com/phpgao/mysqlmcp@latest</code>
+    </div>
+
+    <!-- Config Preview -->
+    <div class="config-card" aria-hidden="true">
+      <div class="config-bar">
+        <span class="config-dot"></span>
+        <span class="config-dot"></span>
+        <span class="config-dot"></span>
+        <span class="config-title">config.yaml</span>
+      </div>
+      <pre class="config-body"><span class="c-comment"># Multi-instance MySQL configuration</span>
+<span class="c-key">instances</span>:
+  <span class="c-key">- instance_id:</span> <span class="c-str">"prod-readonly"</span>
+    <span class="c-key">dsn:</span> <span class="c-str">"user:pass@tcp(host:3306)/db"</span>
+    <span class="c-key">environment:</span> <span class="c-str">"production"</span>
+    <span class="c-key">read_only:</span> <span class="c-bool">true</span>
+    <span class="c-key">timeout_seconds:</span> <span class="c-num">30</span>
+
+  <span class="c-key">- instance_id:</span> <span class="c-str">"staging-rw"</span>
+    <span class="c-key">dsn:</span> <span class="c-str">"user:pass@tcp(host:3307)/db"</span>
+    <span class="c-key">environment:</span> <span class="c-str">"staging"</span>
+    <span class="c-key">read_only:</span> <span class="c-bool">false</span>
+    <span class="c-key">timeout_seconds:</span> <span class="c-num">60</span></pre>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="section" aria-labelledby="features-title">
+    <p class="section-label" style="text-align:center">Features</p>
+    <h2 id="features-title" class="section-title" style="text-align:center">Safe MySQL access for AI</h2>
+    <p class="section-desc" style="text-align:center">
+      Connect multiple MySQL instances with per-instance security policies. Your AI assistant queries safely.
+    </p>
+
+    <div class="feature-grid">
+      <article class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+        </svg>
+        <h3 class="feature-name">Multi-Instance</h3>
+        <p class="feature-desc">Connect production, staging, and dev databases simultaneously. Each with its own connection pool.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <h3 class="feature-name">Read-Only Enforcement</h3>
+        <p class="feature-desc">Prevent accidental writes on production replicas. AI cannot bypass per-instance security.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <h3 class="feature-name">SQL Static Analysis</h3>
+        <p class="feature-desc">Vitess SQL parser validates every query. Reject dangerous operations before execution.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <h3 class="feature-name">Timeout Control</h3>
+        <p class="feature-desc">Every query gets a per-instance timeout. Context deadline prevents runaway queries.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <h3 class="feature-name">Dual Transport</h3>
+        <p class="feature-desc">Run locally via stdio or remotely via HTTP with Bearer Token authentication.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <h3 class="feature-name">Row Limit</h3>
+        <p class="feature-desc">SELECT without LIMIT is rejected. Results truncated at max_rows to prevent memory exhaustion.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Security -->
+  <section id="security" class="section" aria-labelledby="security-title">
+    <p class="section-label" style="text-align:center">Security</p>
+    <h2 id="security-title" class="section-title" style="text-align:center">4 layers of query safety</h2>
+    <p class="section-desc" style="text-align:center">
+      Every SQL statement passes through 4 validation layers before touching your database.
+    </p>
+
+    <div class="security-flow">
+      <div class="security-step">
+        <div class="security-step-num">1</div>
+        <h4>Parse & Inject</h4>
+        <p>Vitess parser validates SQL. DROP DATABASE and dangerous ops blocked.</p>
+      </div>
+      <div class="security-arrow" aria-hidden="true">→</div>
+      <div class="security-step">
+        <div class="security-step-num">2</div>
+        <h4>Single Statement</h4>
+        <p>Multiple statements separated by ; are rejected. One query per call.</p>
+      </div>
+      <div class="security-arrow" aria-hidden="true">→</div>
+      <div class="security-step">
+        <div class="security-step-num">3</div>
+        <h4>LIMIT Check</h4>
+        <p>SELECT must include LIMIT clause. Value checked against instance max_rows.</p>
+      </div>
+      <div class="security-arrow" aria-hidden="true">→</div>
+      <div class="security-step">
+        <div class="security-step-num">4</div>
+        <h4>Read-Only</h4>
+        <p>INSERT/UPDATE/DELETE rejected on read-only instances. Instance-aware enforcement.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tools -->
+  <section id="tools" class="section" aria-labelledby="tools-title">
+    <p class="section-label" style="text-align:center">MCP Tools</p>
+    <h2 id="tools-title" class="section-title" style="text-align:center">4 tools for AI</h2>
+    <p class="section-desc" style="text-align:center">
+      Minimal toolset. AI picks the right tool for the task without confusion.
+    </p>
+
+    <div class="tools-group">
+      <div class="tools-list">
+        <div class="tool-item"><code>list_instances</code><span>List all configured MySQL instances with metadata</span></div>
+        <div class="tool-item"><code>query</code><span>Execute SQL with full 4-layer validation and timeout</span></div>
+        <div class="tool-item"><code>describe_table</code><span>Show table schema (DESCRIBE) — read-only safe</span></div>
+        <div class="tool-item"><code>explain_query</code><span>Show execution plan (EXPLAIN) — validated, not executed</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Setup -->
+  <section id="setup" class="section" aria-labelledby="setup-title">
+    <p class="section-label" style="text-align:center">Setup</p>
+    <h2 id="setup-title" class="section-title" style="text-align:center">One config file, done</h2>
+    <p class="section-desc" style="text-align:center">
+      Add to your MCP client. Works with CodeBuddy Code, Claude Desktop, and any MCP-compatible assistant.
+    </p>
+
+    <div class="config-card" aria-hidden="true" style="margin-top:0;">
+      <div class="config-bar">
+        <span class="config-dot"></span>
+        <span class="config-dot"></span>
+        <span class="config-dot"></span>
+        <span class="config-title">~/.codebuddy/mcp.json</span>
+      </div>
+      <pre class="config-body">{
+  <span class="c-key">"mcpServers"</span>: {
+    <span class="c-key">"mysqlmcp"</span>: {
+      <span class="c-key">"command"</span>: <span class="c-str">"mysqlmcp"</span>,
+      <span class="c-key">"args"</span>: [<span class="c-str">"-config"</span>, <span class="c-str">"./config.yaml"</span>]
+    }
+  }
+}</pre>
+    </div>
+
+    <p style="text-align:center;margin-top:1.5rem;color:var(--text-muted);font-size:0.85rem;">
+      Need remote access? HTTP mode:<br>
+      <code style="color:var(--primary);font-size:0.85rem;">mysqlmcp -transport http -port 8000</code>
+    </p>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-left">
+    <div class="footer-brand">mysqlmcp</div>
+    <p class="footer-text">Safe MySQL access for AI assistants</p>
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/phpgao/mysqlmcp">GitHub</a>
+    <a href="https://github.com/phpgao/mysqlmcp/blob/main/README.md">Docs</a>
+    <a href="https://github.com/phpgao/mysqlmcp/blob/main/LICENSE">MIT</a>
+  </div>
+</footer>
+
+<script>
+  (function() {
+    var el = document.getElementById('version');
+    if (!el) return;
+    try { var v = JSON.parse(localStorage.getItem('mysqlmcp_version')); } catch(e) {}
+    if (v && v.ts > Date.now() - 3600000) { el.textContent = v.tag; return; }
+    fetch('https://api.github.com/repos/phpgao/mysqlmcp/releases/latest')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.tag_name) {
+          el.textContent = d.tag_name;
+          localStorage.setItem('mysqlmcp_version', JSON.stringify({tag: d.tag_name, ts: Date.now()}));
+        }
+      })
+      .catch(function() { if (v) el.textContent = v.tag; });
+  })();
+</script>
+
+</body>
+</html>
