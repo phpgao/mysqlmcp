@@ -30,6 +30,7 @@ type InstanceConfig struct {
 	ReadOnly       bool   `yaml:"read_only"`
 	TimeoutSeconds int    `yaml:"timeout_seconds"`
 	MaxRows        int    `yaml:"max_rows"`
+	Remark         string `yaml:"remark"`
 }
 
 func LoadConfig(path string) (*Config, error) {
