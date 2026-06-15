@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 )
@@ -35,7 +36,7 @@ func NewAuthMiddleware(token string) func(http.Handler) http.Handler {
 		if tok != token {
 			return nil, fmt.Errorf("invalid token")
 		}
-		return &auth.TokenInfo{}, nil
+		return &auth.TokenInfo{Expiration: time.Now().Add(24 * time.Hour)}, nil
 	}
 	return auth.RequireBearerToken(verifier, nil)
 }
