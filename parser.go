@@ -11,7 +11,8 @@ import (
 type AnalysisResult struct {
 	StatementType string // SELECT, INSERT, UPDATE, DELETE, etc.
 	IsReadOnly    bool
-	LimitValue    int // 0 means no limit or not applicable
+	LimitValue    int  // 0 means no limit or not applicable
+	ReturnsRows   bool // whether the statement returns row data (SELECT, SHOW, DESCRIBE, EXPLAIN)
 }
 
 // Analyze performs 4-layer SQL static analysis.
@@ -56,6 +57,7 @@ func Analyze(sql string, maxRows int, readOnly bool) (*AnalysisResult, error) {
 		StatementType: stmtType,
 		IsReadOnly:    isRead,
 		LimitValue:    limitVal,
+		ReturnsRows:   isRead && (stmtType == "SELECT" || stmtType == "SHOW"),
 	}, nil
 }
 

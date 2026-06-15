@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -58,9 +59,9 @@ func handleQuery(ctx context.Context, req *mcp.CallToolRequest, input QueryInput
 	qCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	isSelect := result.StatementType == "SELECT"
+	log.Printf("mysqlmcp: executing [%s] on %q: %s", result.StatementType, input.InstanceID, input.SQL)
 
-	if isSelect {
+	if result.ReturnsRows {
 		return executeSelect(qCtx, db, input, inst)
 	}
 	return executeWrite(qCtx, db, input, inst, result.StatementType)
@@ -123,12 +124,28 @@ func executeSelect(ctx context.Context, db *sql.DB, input QueryInput, inst Insta
 		Environment: inst.Environment,
 	}
 
-	msg := fmt.Sprintf("Query returned %d rows", count)
+	msg := fmt.Sprintf("Query returned %d rows\n", count)
 	if truncated {
-		msg += fmt.Sprintf(" (truncated, max %d rows)", inst.MaxRows)
+		msg += fmt.Sprintf("(truncated, max %d rows)\n", inst.MaxRows)
 	}
-	msg += fmt.Sprintf("\nInstance: %s (%s)", input.InstanceID, inst.Environment)
-	msg += fmt.Sprintf("\nColumns: %s", strings.Join(columns, ", "))
+	msg += fmt.Sprintf("Instance: %s (%s)\n", input.InstanceID, inst.Environment)
+	msg += fmt.Sprintf("Columns: %s\n", strings.Join(columns, ", "))
+
+	// Render first 20 rows in text output
+	maxRender := 20
+	if count < maxRender {
+		maxRender = count
+	}
+	for i, row := range rowData[:maxRender] {
+		vals := make([]string, len(columns))
+		for j, col := range columns {
+			vals[j] = fmt.Sprintf("%v", row[col])
+		}
+		msg += fmt.Sprintf("  %d: %s\n", i+1, strings.Join(vals, " | "))
+	}
+	if count > maxRender {
+		msg += fmt.Sprintf("  ... and %d more rows\n", count-maxRender)
+	}
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
