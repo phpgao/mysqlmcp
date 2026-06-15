@@ -18,6 +18,7 @@ type InstanceMeta struct {
 	ReadOnly       bool   `json:"read_only"`
 	TimeoutSeconds int    `json:"timeout_seconds"`
 	MaxRows        int    `json:"max_rows"`
+	Remark         string `json:"remark,omitempty"`
 }
 
 type ListInstancesOutput struct {
@@ -45,14 +46,19 @@ func handleListInstances(ctx context.Context, req *mcp.CallToolRequest, input Li
 			ReadOnly:       inst.ReadOnly,
 			TimeoutSeconds: inst.TimeoutSeconds,
 			MaxRows:        inst.MaxRows,
+			Remark:         inst.Remark,
 		})
 	}
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%d instance(s) available:\n", len(metas)))
 	for _, m := range metas {
-		sb.WriteString(fmt.Sprintf("  - %s (env=%s, read_only=%v, timeout=%ds, max_rows=%d)\n",
-			m.InstanceID, m.Environment, m.ReadOnly, m.TimeoutSeconds, m.MaxRows))
+		remark := ""
+		if m.Remark != "" {
+			remark = fmt.Sprintf(" (remark: %s)", m.Remark)
+		}
+		sb.WriteString(fmt.Sprintf("  - %s (env=%s, read_only=%v, timeout=%ds, max_rows=%d)%s\n",
+			m.InstanceID, m.Environment, m.ReadOnly, m.TimeoutSeconds, m.MaxRows, remark))
 	}
 
 	return &mcp.CallToolResult{

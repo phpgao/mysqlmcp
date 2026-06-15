@@ -12,20 +12,22 @@ data:
       port: 8000
 
     defaults:
-      timeout_seconds: 30
+      timeout_seconds: 60
       max_rows: 10000
 
     instances:
-      - instance_id: "prod-readonly"
-        dsn: "user:password@tcp(mysql-host:3306)/mydb?charset=utf8mb4&parseTime=true"
-        environment: "production"
+      - instance_id: "cdbro-2u0en2el"
+        dsn: "user:password@tcp(host:3838)/?charset=utf8mb4&parseTime=true"
+        environment: "testing"
         read_only: true
         timeout_seconds: 30
         max_rows: 1000
+        remark: "tkex-middle-back专用ro"
 
-      - instance_id: "staging-rw"
-        dsn: "user:password@tcp(mysql-host:3307)/mydb?charset=utf8mb4&parseTime=true"
-        environment: "staging"
-        read_only: false
-        timeout_seconds: 60
-        max_rows: 5000
+      - instance_id: "camp"
+        dsn: "user:password@tcp(host:3306)/?charset=utf8mb4&parseTime=true"
+        environment: "testing"
+        read_only: true
+        timeout_seconds: 30
+        max_rows: 1000
+        remark: "camp test"
