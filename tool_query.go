@@ -33,17 +33,17 @@ func toolQuery() *mcp.Tool {
 	}
 }
 
-func handleQuery(ctx context.Context, req *mcp.CallToolRequest, input QueryInput) (
+func handleQuery(ctx context.Context, req *mcp.CallToolRequest, input QueryInput, cm *ConnectionManager) (
 	*mcp.CallToolResult,
 	*QueryOutput,
 	error,
 ) {
-	db, err := GetDB(input.InstanceID)
+	db, err := cm.GetDB(input.InstanceID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	inst, err := GetInstance(input.InstanceID)
+	inst, err := cm.GetInstance(input.InstanceID)
 	if err != nil {
 		return nil, nil, err
 	}

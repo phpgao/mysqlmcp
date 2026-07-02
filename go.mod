@@ -3,6 +3,7 @@ module github.com/phpgao/mysqlmcp
 go 1.26.4
 
 require (
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2

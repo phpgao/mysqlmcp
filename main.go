@@ -26,13 +26,14 @@ func main() {
 		log.Fatalf("mysqlmcp: %v", err)
 	}
 
-	// Init MySQL connections
-	if err := InitConnections(cfg); err != nil {
+	// Init connection manager
+	cm := NewConnectionManager()
+	if err := cm.InitFromConfig(cfg); err != nil {
 		log.Fatalf("mysqlmcp: %v", err)
 	}
 
 	// Create server
-	server := NewServer()
+	server := NewServer(cm)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -48,6 +49,9 @@ func main() {
 
 	switch *transport {
 	case "stdio":
+		// Start config watcher before entering stdio loop
+		go watchConfig(*configPath, cm)
+
 		log.Printf("mysqlmcp %s starting on stdio...", ServerVersion)
 		if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
 			log.Fatalf("mysqlmcp: server error: %v", err)
@@ -76,6 +80,9 @@ func main() {
 		authMw := NewAuthMiddleware(token)
 		http.Handle("/mcp", authMw(handler))
 
+		// Start config watcher
+		go watchConfig(*configPath, cm)
+
 		log.Printf("mysqlmcp %s HTTP server starting on %s/mcp", ServerVersion, addr)
 		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Fatalf("mysqlmcp: HTTP server error: %v", err)
@@ -84,4 +91,7 @@ func main() {
 	default:
 		log.Fatalf("mysqlmcp: unknown transport %q (use stdio or http)", *transport)
 	}
+
+	// Clean shutdown: close all connections
+	cm.Close()
 }

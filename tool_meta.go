@@ -32,14 +32,14 @@ func toolListInstances() *mcp.Tool {
 	}
 }
 
-func handleListInstances(ctx context.Context, req *mcp.CallToolRequest, input ListInstancesInput) (
+func handleListInstances(ctx context.Context, req *mcp.CallToolRequest, input ListInstancesInput, cm *ConnectionManager) (
 	*mcp.CallToolResult,
 	*ListInstancesOutput,
 	error,
 ) {
 	var metas []InstanceMeta
-	for _, id := range getInstanceIDs() {
-		inst, _ := GetInstance(id)
+	for _, id := range cm.GetInstanceIDs() {
+		inst, _ := cm.GetInstance(id)
 		metas = append(metas, InstanceMeta{
 			InstanceID:     inst.InstanceID,
 			Environment:    inst.Environment,
@@ -51,14 +51,14 @@ func handleListInstances(ctx context.Context, req *mcp.CallToolRequest, input Li
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%d instance(s) available:\n", len(metas)))
+	fmt.Fprintf(&sb, "%d instance(s) available:\n", len(metas))
 	for _, m := range metas {
 		remark := ""
 		if m.Remark != "" {
 			remark = fmt.Sprintf(" (remark: %s)", m.Remark)
 		}
-		sb.WriteString(fmt.Sprintf("  - %s (env=%s, read_only=%v, timeout=%ds, max_rows=%d)%s\n",
-			m.InstanceID, m.Environment, m.ReadOnly, m.TimeoutSeconds, m.MaxRows, remark))
+		fmt.Fprintf(&sb, "  - %s (env=%s, read_only=%v, timeout=%ds, max_rows=%d)%s\n",
+			m.InstanceID, m.Environment, m.ReadOnly, m.TimeoutSeconds, m.MaxRows, remark)
 	}
 
 	return &mcp.CallToolResult{
@@ -86,17 +86,17 @@ func toolDescribeTable() *mcp.Tool {
 	}
 }
 
-func handleDescribeTable(ctx context.Context, req *mcp.CallToolRequest, input DescribeTableInput) (
+func handleDescribeTable(ctx context.Context, req *mcp.CallToolRequest, input DescribeTableInput, cm *ConnectionManager) (
 	*mcp.CallToolResult,
 	*DescribeTableOutput,
 	error,
 ) {
-	db, err := GetDB(input.InstanceID)
+	db, err := cm.GetDB(input.InstanceID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	_, err = GetInstance(input.InstanceID)
+	_, err = cm.GetInstance(input.InstanceID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,10 +128,10 @@ func handleDescribeTable(ctx context.Context, req *mcp.CallToolRequest, input De
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Table `%s` schema (instance: %s):\n", input.Table, input.InstanceID))
+	fmt.Fprintf(&sb, "Table `%s` schema (instance: %s):\n", input.Table, input.InstanceID)
 	for _, r := range rowData {
-		sb.WriteString(fmt.Sprintf("  %v | %v | %v | %v | %v\n",
-			r["Field"], r["Type"], r["Null"], r["Key"], r["Default"]))
+		fmt.Fprintf(&sb, "  %v | %v | %v | %v | %v\n",
+			r["Field"], r["Type"], r["Null"], r["Key"], r["Default"])
 	}
 
 	return &mcp.CallToolResult{
@@ -159,17 +159,17 @@ func toolExplainQuery() *mcp.Tool {
 	}
 }
 
-func handleExplainQuery(ctx context.Context, req *mcp.CallToolRequest, input ExplainQueryInput) (
+func handleExplainQuery(ctx context.Context, req *mcp.CallToolRequest, input ExplainQueryInput, cm *ConnectionManager) (
 	*mcp.CallToolResult,
 	*ExplainQueryOutput,
 	error,
 ) {
-	db, err := GetDB(input.InstanceID)
+	db, err := cm.GetDB(input.InstanceID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	_, err = GetInstance(input.InstanceID)
+	_, err = cm.GetInstance(input.InstanceID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -207,7 +207,7 @@ func handleExplainQuery(ctx context.Context, req *mcp.CallToolRequest, input Exp
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("EXPLAIN for: %s\n\n", input.SQL))
+	fmt.Fprintf(&sb, "EXPLAIN for: %s\n\n", input.SQL)
 	sb.WriteString(strings.Join(columns, " | ") + "\n")
 	sb.WriteString(strings.Repeat("-", 60) + "\n")
 	for _, r := range rowData {
