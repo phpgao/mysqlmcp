@@ -45,10 +45,11 @@ func watchConfig(configPath string, cm *ConnectionManager) {
 				return
 			}
 
-			// Trigger reload on any file event in the config directory.
-			// K8s Secret updates generate Create events for new timestamped
-			// subdirectories, and regular file changes generate Create/Write.
-			if event.Op&(fsnotify.Create|fsnotify.Write) == 0 {
+			// Trigger reload on any change in the config directory.
+			// K8s Secret symlink swaps generate: CREATE for new timestamped
+			// subdirectory + RENAME for ..data symlink swap.
+			// Regular file changes generate CREATE/WRITE.
+			if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Rename|fsnotify.Remove) == 0 {
 				continue
 			}
 
